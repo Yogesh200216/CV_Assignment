@@ -1,50 +1,37 @@
 import streamlit as st
 import cv2
 import numpy as np
-from PIL import Image
 
-# Function to apply grayscale transformation
-def grayscale(image):
-    return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+st.title("Image Affine Transformations")
 
-# Function to apply horizontal flip transformation
-def flip(image):
-    return cv2.flip(image, 1)
+image = st.file_uploader("Upload an image", type=["jpg", "png", "jpeg"])
 
-# Function to apply invert colors transformation
-def invert_colors(image):
-    return 255 - image  # Invert colors by subtracting each pixel value from 255
+if image is not None:
+    image = cv2.imdecode(np.frombuffer(image.read(), np.uint8), cv2.IMREAD_COLOR)
+    height, width = image.shape[:2]
 
-# Function to apply blur transformation
-def blur(image):
-    return cv2.GaussianBlur(image, (7, 7), 0)
+    st.image(image, caption="Uploaded Image", use_column_width=True)
 
-# Streamlit web app
-st.title("Image Transformation App")
+    translation_matrix = np.float32([[1, 0, 50], [0, 1, 30]])
 
-uploaded_image = st.file_uploader("Upload an image", type=["jpg", "png", "jpeg"])
+    angle = st.slider("Rotation Angle (degrees)", -180, 180, 0)
+    rotation_matrix = cv2.getRotationMatrix2D((width / 2, height / 2), angle, 1)
 
-if uploaded_image is not None:
-    image = Image.open(uploaded_image)
-    image = np.array(image)
+    scale_x = st.slider("Scale X", 0.1, 3.0, 1.0)
+    scale_y = st.slider("Scale Y", 0.1, 3.0, 1.0)
+    scaling_matrix = np.float32([[scale_x, 0, 0], [0, scale_y, 0]])
 
-    st.image(image, caption="Original Image", use_column_width=True)
-
-    # Transformation options
-    st.sidebar.header("Transformations")
-    grayscale_option = st.sidebar.checkbox("Grayscale")
-    flip_option = st.sidebar.checkbox("Flip")
-    invert_colors_option = st.sidebar.checkbox("Invert Colors")
-    blur_option = st.sidebar.checkbox("Blur")
+    shear_x = st.slider("Shear X", -1.0, 1.0, 0.0)
+    shear_y = st.slider("Shear Y", -1.0, 1.0, 0.0)
+    shear_matrix = np.float32([[1, shear_x, 0], [shear_y, 1, 0]])
 
     if st.button("Apply Transformations"):
-        if grayscale_option:
-            image = grayscale(image)
-        if flip_option:
-            image = flip(image)
-        if invert_colors_option:
-            image = invert_colors(image)
-        if blur_option:
-            image = blur(image)
+        translated_image = cv2.warpAffine(image, translation_matrix, (width, height))
+        rotated_image = cv2.warpAffine(image, rotation_matrix, (width, height))
+        scaled_image = cv2.warpAffine(image, scaling_matrix, (width, height))
+        sheared_image = cv2.warpAffine(image, shear_matrix, (width, height))
 
-        st.image(image, caption="Transformed Image", use_column_width=True)
+        st.image(translated_image, caption="Translated Image", use_column_width=True)
+        st.image(rotated_image, caption="Rotated Image", use_column_width=True)
+        st.image(scaled_image, caption="Scaled Image", use_column_width=True)
+        st.image(sheared_image, caption="Sheared Image", use_column_width=True)
